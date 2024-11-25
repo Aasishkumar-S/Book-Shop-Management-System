@@ -1,0 +1,328 @@
+#include <stdio.h>
+#include <conio.h>  // Include this if you are using a Windows environment
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+
+struct books {
+    int id;
+    char bookName[50];
+    char authorName[50];
+    char date[12];
+    int quantity;
+    struct books *next;
+} *bookHead = NULL;
+
+struct student {
+    int id;
+    char sName[50];
+    char sClass[50];
+    int sRoll;
+    char bookName[50];
+    char date[12];
+    struct student *next;
+} *studentHead = NULL;
+
+FILE *fp;
+
+void addBook();
+void booksList();
+void del();
+void issueBook();
+void issueList();
+void updateBookCount();
+int isBookIdUnique(int id);
+void loadBooks();
+void saveBooks();
+
+int main() {
+    int ch;
+
+    loadBooks();
+
+    while (1) {
+        //system("cls");
+         //clrscr();
+
+        printf("<== Library Management System ==>\n");
+        printf("1. Add Book\n");
+        printf("2. Books List\n");
+        printf("3. Remove Book\n");
+        printf("4. Issue Book\n");
+        printf("5. Issued Book List\n");
+        printf("6. Update Book Count\n");
+        printf("0. Exit\n\n");
+        printf("Enter your choice: ");
+        scanf("%d", &ch);
+
+        switch (ch) {
+            case 0:
+                saveBooks();
+                exit(0);
+
+            case 1:
+                addBook();
+                break;
+
+            case 2:
+                booksList();
+                break;
+
+            case 3:
+                del();
+                break;
+
+            case 4:
+                issueBook();
+                break;
+
+            case 5:
+                issueList();
+                break;
+
+            case 6:
+                updateBookCount();
+                break;
+
+            default:
+                printf("Invalid Choice...\n\n");
+        }
+        printf("Press Any Key To Continue...\n");
+       //getchar();
+    }
+
+    return 0;
+}
+
+int isBookIdUnique(int id) {
+    struct books *temp = bookHead;
+    while (temp != NULL) {
+        if (temp->id == id) {
+            return 0;
+        }
+        temp = temp->next;
+    }
+    return 1;
+}
+
+void addBook() {
+    char myDate[12];
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    sprintf(myDate, "%02d/%02d/%d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+
+    struct books *newBook = (struct books *)malloc(sizeof(struct books));
+    strcpy(newBook->date, myDate);
+    newBook->next = NULL;
+
+    printf("Enter book id (non-negative): ");
+    scanf("%d", &newBook->id);
+
+    if (newBook->id < 0 || !isBookIdUnique(newBook->id)) {
+        printf("Invalid or duplicate book ID.\n");
+        free(newBook);
+        return;
+    }
+
+    printf("Enter book name: ");
+    fflush(stdin);
+    fgets(newBook->bookName, 50, stdin);
+    newBook->bookName[strcspn(newBook->bookName, "\n")] = '\0';
+
+    printf("Enter author name: ");
+    fflush(stdin);
+    fgets(newBook->authorName, 50, stdin);
+    newBook->authorName[strcspn(newBook->authorName, "\n")] = '\0';
+
+    printf("Enter quantity: ");
+    scanf("%d", &newBook->quantity);
+
+    newBook->next = bookHead;
+    bookHead = newBook;
+
+    printf("Book Added Successfully\n");
+}
+
+void booksList() {
+    //system("cls");
+    printf("<== Available Books ==>\n\n");
+    printf("%-10s %-30s %-20s %-10s %-10s\n\n", "Book id", "Book Name", "Author", "Date", "Quantity");
+
+    struct books *temp = bookHead;
+    while (temp != NULL) {
+        printf("%-10d %-30s %-20s %-10s %-10d\n", temp->id, temp->bookName, temp->authorName, temp->date, temp->quantity);
+        temp = temp->next;
+    }
+}
+   void del() {
+    int id, f = 0;
+    //system("cls");
+    printf("Enter Book id to remove: ");
+    scanf("%d", &id);
+
+    struct books *temp = bookHead;
+    struct books *prev = NULL;
+
+    while (temp != NULL) {
+        if (temp->id == id) {
+            f = 1;
+            if (prev == NULL) {
+                bookHead = temp->next;
+            } else {
+                prev->next = temp->next;
+            }
+            free(temp);
+            break;
+        }
+        prev = temp;
+        temp = temp->next;
+    }
+
+    if (f) {
+        printf("\n\nDeleted Successfully.");
+    } else {
+        printf("\n\nRecord Not Found !");
+    }
+
+    saveBooks();
+}
+
+void issueBook() {
+    char myDate[12];
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    sprintf(myDate, "%02d/%02d/%d", tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+
+    struct student *newStudent = (struct student *)malloc(sizeof(struct student));
+    strcpy(newStudent->date, myDate);
+    newStudent->next = NULL;
+
+    int f = 0;
+
+    //system("cls");
+    printf("<== Issue Books ==>\n\n");
+
+    printf("Enter Book id to issue: ");
+    scanf("%d", &newStudent->id);
+
+    struct books *temp = bookHead;
+    while (temp != NULL) {
+        if (temp->id == newStudent->id) {
+            if (temp->quantity > 0) {
+                strcpy(newStudent->bookName, temp->bookName);
+                temp->quantity--;
+                f = 1;
+            } else {
+                printf("Book out of stock\n");
+            }
+            break;
+        }
+        temp = temp->next;
+    }
+
+    if (f == 0) {
+        if (temp == NULL) {
+            printf("No book found with this id\n");
+        }
+        printf("Please try again...\n\n");
+        free(newStudent);
+        return;
+    }
+    
+    printf("Enter Student Name: ");
+    fflush(stdin);
+    fgets(newStudent->sName, 50, stdin);
+    newStudent->sName[strcspn(newStudent->sName, "\n")] = '\0';
+
+    printf("Enter Student Class: ");
+    fflush(stdin);
+    fgets(newStudent->sClass, 50, stdin);
+    newStudent->sClass[strcspn(newStudent->sClass, "\n")] = '\0';
+
+    printf("Enter Student Roll: ");
+    scanf("%d", &newStudent->sRoll);
+
+    newStudent->next = studentHead;
+    studentHead = newStudent;
+
+    fp = fopen("issue.txt", "ab");
+    if (fp == NULL) {
+        printf("Error opening file for writing.\n");
+        return;
+    }
+    fwrite(newStudent, sizeof(*newStudent), 1, fp);
+    fclose(fp);
+
+    saveBooks();
+
+    printf("Book Issued Successfully\n\n");
+}
+
+
+    struct student *temp = studentHead;
+    while (temp != NULL) {
+        printf("%-10d %-30s %-20s %-10d %-30s %s\n", temp->id, temp->sName, temp->sClass, temp->sRoll, temp->bookName, temp->date);
+        temp = temp->next;
+    }
+}
+
+void updateBookCount() {
+    int id, quantity, f = 0;
+    //system("cls");
+    printf("<== Update Book Count ==>\n\n");
+    printf("Enter Book id: ");
+    scanf("%d", &id);
+
+    struct books *temp = bookHead;
+    while (temp != NULL) {
+        if (temp->id == id) {
+            printf("Enter quantity to add: ");
+            scanf("%d", &quantity);
+            temp->quantity += quantity;
+            f = 1;
+            break;
+        }
+        temp = temp->next;
+    }
+    
+    if (f) {
+        printf("\n\nBook count updated successfully.\n");
+    } else {
+        printf("\n\nBook not found.\n");
+    }
+
+    saveBooks();
+}
+
+void loadBooks() {
+    struct books *newBook;
+    fp = fopen("books.txt", "rb");
+    if (fp == NULL) return;
+
+    while (1) {
+        newBook = (struct books *)malloc(sizeof(struct books));
+        if (fread(newBook, sizeof(struct books), 1, fp) != 1) {
+            free(newBook);
+            break;
+        }
+        newBook->next = bookHead;
+        bookHead = newBook;
+    }
+
+    fclose(fp);
+}
+
+void saveBooks() {
+    struct books *temp = bookHead;
+    fp = fopen("books.txt", "wb");
+    if (fp == NULL) {
+        printf("Error opening file for writing.\n");
+        return;
+    }
+    while (temp != NULL) {
+        fwrite(temp, sizeof(struct books), 1, fp);
+        temp = temp->next;
+    }
+    fclose(fp);
+}
